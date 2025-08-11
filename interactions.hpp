@@ -4,7 +4,7 @@
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
 
-float2 camera = {1.3f, 0.3f};
+float2 camera = {0.1f, 1.5f};
 const float pi = 3.1415926535f;
 const float twopi = 2*pi;
 
@@ -20,15 +20,15 @@ void printInstructions(){
 
 
 
-const float epsilon = 0.0001f;
+const float epsilon = 0.001f;
 void moveRight(){
     camera.x =  camera.x - 0.03;
-    camera.x < epsilon ? (camera.x = epsilon) : 0;
+    camera.x < epsilon ? (camera.x = twopi-epsilon) : 0;
 }
 
 void moveLeft(){
     camera.x += 0.03;
-    camera.x > twopi ? (camera.x=twopi - epsilon): 0;
+    camera.x > twopi ? (camera.x= epsilon): 0;
 }
 
 void moveUp(){
@@ -37,7 +37,7 @@ void moveUp(){
 }
 void moveDown(){
     camera.y-= 0.03;
-    camera.y < -pi ? (camera.y=-pi + epsilon): 0;
+    camera.y < epsilon ? (camera.y= epsilon): 0;
 }
 
 

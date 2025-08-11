@@ -1,7 +1,7 @@
 #include "kernel.hpp"
 #include <iostream>
-#define LIMIT 40
-#define STEP 0.02f
+#define LIMIT 100
+#define STEP 0.1f
 
 #define MAGNITUDE_SQ(x, y, z) ((x)*(x) + (y)*(y) + (z)*(z))
 
@@ -32,7 +32,8 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
     const int idx = r*width + c;
     float3 pos = {-forward.x + ds*(right.x*xidx + up.x*yidx), -forward.y + ds*(right.y*xidx + up.y*yidx), -forward.z + ds*(right.z*xidx + up.z*yidx)};
 
-    bool infty_ray = true;
+    char ray_colour = 0;
+    char colours[3*3] = {0, 0, 0, 254, 254, 254, 254, 0, 0};
 
     const int max_iterations = LIMIT / STEP;
     const float3 step = {STEP*(forward.x + sin_right*right.x + sin_up*up.x), STEP*(forward.y + sin_right*right.y + sin_up*up.y), STEP*(forward.z + sin_right*right.z + sin_up*up.z)};
@@ -42,27 +43,19 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
         pos.z += step.z;
 
         // Simulate a condition where the ray hits an object
-        if (MAGNITUDE_SQ(pos.x, pos.y, pos.z) < 0.2f) {
-            infty_ray = false;
+        if (MAGNITUDE_SQ(pos.x, pos.y, pos.z) < 0.05f) {
+            ray_colour = 1;
             break;
         }
-        if (MAGNITUDE_SQ(pos.x - 2.0f, pos.y - 0.2f, pos.z - 1.1f) < 0.2f) {
-            infty_ray = false;
+        if (MAGNITUDE_SQ(pos.x - 0.8f, pos.y - 0.3f, pos.z) < 0.05f) {
+            ray_colour = 2;
             break;
         }
     }
-    if(infty_ray){
-        d_out[idx].x = 0; 
-        d_out[idx].y = 0; 
-        d_out[idx].z = 0; 
-        d_out[idx].w = 255; 
-    } else {
-        // Color the pixel white if the ray hit an object
-        d_out[idx].x = 255; 
-        d_out[idx].y = 255; 
-        d_out[idx].z = 255; 
-        d_out[idx].w = 255; 
-    }
+    d_out[idx].x = colours[3*ray_colour + 0];
+    d_out[idx].y = colours[3*ray_colour + 1];
+    d_out[idx].z = colours[3*ray_colour + 2];
+    d_out[idx].w = 255;
 
     // d_out[idx].x = 255; 
     // d_out[idx].y = 255; 
@@ -127,6 +120,7 @@ void kernelLauncher(uchar4 *d_out, float camerax, float cameray, float cam_dista
     float cosphi = cosf(cameray);
     float sintheta = sinf(camerax);
     float costheta = cosf(camerax);
+    // printf("Camera: %f %f\n", camerax, cameray);
 
     float3 r = {costheta*sinphi, sintheta*sinphi, cosphi};
     float3 plane_right = normalize_vector(cross_product(up, r));
