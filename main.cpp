@@ -16,9 +16,12 @@
 #include <cuda_gl_interop.h>
 #include "interactions.hpp"
 
-#define W 400
-#define H 300
-#define SCREEN_SCALING 0.01
+#define W 1024
+#define H 512
+#define CAM_DIST 1.0f
+#define SCREEN_WIDTH 10.0f
+#define SCREEN_HEIGHT 5.0f
+// #define SCREEN_SCALING (10.0f / W)
 #define CAMERA_DISTANCE 10.0f
 #define TITLE_STRING "Black hole sim"
 GLuint pbo;
@@ -26,26 +29,28 @@ GLuint tex;
 struct cudaGraphicsResource *cuda_pbo_resource;
 
 
+const float SCREEN_SCALING = MIN(SCREEN_WIDTH / W, SCREEN_HEIGHT / H);
 
-
-
-void initPixelBuffer(){
-    glCreateBuffers(1, &pbo);
+void initPixelBuffer()
+{
+    glGenBuffers(1, &pbo);
     glBindBuffer(GL_PIXEL_UNPACK_BUFFER, pbo);
-    glBufferData(GL_PIXEL_UNPACK_BUFFER, 4*W*H*sizeof(GLubyte), 0, GL_STREAM_DRAW);
+    glBufferData(GL_PIXEL_UNPACK_BUFFER, 4 * W * H * sizeof(GLubyte), 0,
+                 GL_STREAM_DRAW);
     glGenTextures(1, &tex);
     glBindTexture(GL_TEXTURE_2D, tex);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-    cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);   
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    cudaGraphicsGLRegisterBuffer(&cuda_pbo_resource, pbo,
+                                 cudaGraphicsMapFlagsWriteDiscard);
 }
-
 
 void render(){
     uchar4* d_out = 0;
 
     cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);
     cudaGraphicsResourceGetMappedPointer((void **)&d_out, NULL, cuda_pbo_resource);
-    kernelLauncher(d_out, camera, W, H, SCREEN_SCALING, 0, NULL, NULL);
+    kernelLauncher(d_out, camera.x, camera.y, CAM_DIST, W, H, SCREEN_SCALING, 0, NULL, NULL);
+    // testKernelLauncher(d_out, W, H);
     cudaGraphicsUnmapResources(1, &cuda_pbo_resource, 0);
 }
 
@@ -74,6 +79,8 @@ void display()
     render();
     drawTexture();
     glutSwapBuffers();
+    // print("Rendering");
+    // glutPostRedisplay();
 }
 
 void initGLUT(int *argc, char **argv)

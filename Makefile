@@ -20,7 +20,7 @@ main: main.o kernel.o
 	$(NVCC) $^ -o $@ -Wno-deprecated-gpu-targets $(LDFLAGS)
 
 main.o: main.cpp kernel.hpp interactions.hpp
-	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ 
+	$(NVCC) $(NVCC_FLAGS) -std=c++20 -c $< -o $@ 
 
 kernel.o : kernel.cu kernel.hpp 
 	$(NVCC) $(NVCC_FLAGS) -c $< -o $@ 
