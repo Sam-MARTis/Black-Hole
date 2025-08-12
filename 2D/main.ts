@@ -118,11 +118,19 @@ class Photon {
 
         // const ddphi = -2 * this.dr * this.dphi / this.r;
 
-        const derivatives  = this.getGeodesicDerivatives(this.r, this.dr, this.dphi, this.f, this.dtdl, this.blackHole.radius);
-        this.r  += derivatives[0]  *STEP;
-        this.phi  += derivatives[1]*STEP;
-        this.dr += derivatives[2]  *STEP;
-        this.dphi += derivatives[3]*STEP;
+        const k1  = this.getGeodesicDerivatives(this.r, this.dr, this.dphi, this.f, this.dtdl, this.blackHole.radius);
+        const k2 = this.getGeodesicDerivatives(this.r + k1[0] * STEP*0.5, this.dr + k1[2] * STEP*0.5, this.dphi + k1[3] * STEP*0.5, this.f, this.dtdl, this.blackHole.radius);
+        const k3 = this.getGeodesicDerivatives(this.r + k2[0] * STEP*0.5, this.dr + k2[2] * STEP*0.5, this.dphi + k2[3] * STEP*0.5, this.f, this.dtdl, this.blackHole.radius);
+        const k4 = this.getGeodesicDerivatives(this.r + k3[0] * STEP, this.dr + k3[2] * STEP, this.dphi + k3[3] * STEP, this.f, this.dtdl, this.blackHole.radius);
+        const onesixth = STEP / 6;
+        this.r  += (k1[0] + 2*k2[0] + 2*k3[0] + k4[0]) * onesixth;
+        this.phi  += (k1[1] + 2*k2[1] + 2*k3[1] + k4[1]) * onesixth;
+        this.dr += (k1[2] + 2*k2[2] + 2*k3[2] + k4[2]) * onesixth;
+        this.dphi += (k1[3] + 2*k2[3] + 2*k3[3] + k4[3]) * onesixth;
+        // this.r  += k1[0]  *STEP;
+        // this.phi  += k1[1]*STEP;
+        // this.dr += k1[2]  *STEP;
+        // this.dphi += k1[3]*STEP;
 
         // this.dr += ddr * ds*c;
         // this.dphi += ddphi * ds*c;
