@@ -12,7 +12,7 @@ if(!ctx){
 
 const STEP:number = 2;
 const PHOTON_RADIUS:number = 0.5;
-const numberOfPhotons = 50;
+const numberOfPhotons = 250;
 
 
 class vector2D {

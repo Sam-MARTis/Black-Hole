@@ -8,7 +8,7 @@ if (!ctx) {
 }
 const STEP = 2;
 const PHOTON_RADIUS = 0.5;
-const numberOfPhotons = 50;
+const numberOfPhotons = 250;
 class vector2D {
     constructor(x, y) {
         this.x = x;

@@ -22,27 +22,38 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
     const int xidx = c - width*0.5f;
     const int yidx = r - height*0.5f;
 
-    const float t_right = xidx*2.0f/width;
-    const float t_up = yidx*2.0f/height;
+    const float t_right = HALF_FOV * xidx*2.0f/width;
+    const float t_up =    HALF_FOV * yidx*2.0f/height;
 
-    const float sin_right = t_right - t_right*t_right*t_right*0.3333f;
-    // const float cos_right = 1.0f - sin_right*sin_right*0.5f;
-    const float sin_up = t_up - t_up*t_up*t_up*0.3333f;
+    // const float sin_right = t_right - t_right*t_right*t_right*0.3333f;
+    // // const float cos_right = 1.0f - sin_right*sin_right*0.5f;
+    // const float sin_up = t_up - t_up*t_up*t_up*0.3333f;
+    // const float cos_up = sqrtf(1.0f - sin_up*sin_up);
+
+    const float sin_right = sinf(t_right);
+    const float cos_right = cosf(t_right);
+    const float sin_up = sinf(t_up);
+    const float cos_up = cosf(t_up);
+
+    const float mag_inv = 1/(1+ sin_right*sin_right + sin_up*sin_up);
+    const float3 direction = { (forward.x + sin_right*right.x + sin_up*up.x) * mag_inv, (forward.y + sin_right*right.y + sin_up*up.y) * mag_inv, (forward.z + sin_right*right.z + sin_up*up.z) * mag_inv };
+    const float3 step = {direction.x * STEP, direction.y * STEP, direction.z * STEP};
 
     const int idx = r*width + c;
     float3 pos = {-forward.x + ds*(right.x*xidx + up.x*yidx), -forward.y + ds*(right.y*xidx + up.y*yidx), -forward.z + ds*(right.z*xidx + up.z*yidx)};
+
+
+    // Direction and position sorted. Phew
 
     char ray_colour = 0;
     char colours[3*3] = {0, 0, 0, 254, 254, 254, 254, 0, 0};
 
     const int max_iterations = LIMIT / STEP;
-    const float3 step = {STEP*(forward.x + sin_right*right.x + sin_up*up.x), STEP*(forward.y + sin_right*right.y + sin_up*up.y), STEP*(forward.z + sin_right*right.z + sin_up*up.z)};
     for(int i = 0; i < max_iterations; i++){
         pos.x += step.x;
         pos.y += step.y;
         pos.z += step.z;
 
-        // Simulate a condition where the ray hits an object
         if (MAGNITUDE_SQ(pos.x, pos.y, pos.z) < 0.05f) {
             ray_colour = 1;
             break;
