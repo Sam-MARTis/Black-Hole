@@ -8,7 +8,7 @@ if (!ctx) {
 }
 const STEP = 1;
 const PHOTON_RADIUS = 1;
-const numberOfPhotons = 50;
+const numberOfPhotons = 5;
 class vector2D {
     constructor(x, y) {
         this.x = x;
@@ -58,14 +58,37 @@ class Photon {
         this.pos = new vector2D(x, y);
         this.direction = new vector2D(vx, vy).normalize();
         this.blackHole = blackHole;
+        this.phi = Math.atan2(y - blackHole.pos.y, (x - blackHole.pos.x));
+        this.r = Math.sqrt((x - blackHole.pos.x) ** 2 + (y - blackHole.pos.y) ** 2);
+        this.dr = this.direction.x * Math.cos(this.phi) + this.direction.y * Math.sin(this.phi);
+        this.dphi = -this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi);
     }
     step() {
-        if (!this.alive)
-            return;
-        this.pos.add(this.direction.multiply(STEP, false));
-        if ((blackHole.pos.x - this.pos.x) * (blackHole.pos.x - this.pos.x) +
-            (blackHole.pos.y - this.pos.y) * (blackHole.pos.y - this.pos.y) <
-            (this.blackHole.radius + PHOTON_RADIUS) * (this.blackHole.radius + PHOTON_RADIUS)) {
+        // if(!this.alive) return;
+        // console.log()
+        this.dr = this.direction.x * Math.cos(this.phi) + this.direction.y * Math.sin(this.phi);
+        this.dphi = (-this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi)) / this.r;
+        // this.dr += this.r * this.dphi * this.dphi - ((0.5 * this.blackHole.radius) / (this.r * this.r));
+        // this.dphi += -2 * this.dr * this.dphi / this.r;
+        // this.phi += this.dphi * STEP;
+        this.r += this.dr * STEP;
+        this.phi += this.dphi * STEP;
+        // this.pos.add(this.direction.multiply(STEP, false));
+        // if((blackHole.pos.x - this.pos.x ) * (blackHole.pos.x - this.pos.x) +
+        //    (blackHole.pos.y - this.pos.y ) * (blackHole.pos.y - this.pos.y) < 
+        //    (this.blackHole.radius + PHOTON_RADIUS) * (this.blackHole.radius + PHOTON_RADIUS)){
+        //     this.alive = false;
+        //     return;
+        // }
+        // this.prev_phi = this.phi;
+        // this.prev_r = this.r;
+        // this.phi += dphi_new;
+        // this.r += ddr;
+        this.pos.x = this.blackHole.pos.x + this.r * Math.cos(this.phi);
+        this.pos.y = this.blackHole.pos.y + this.r * Math.sin(this.phi);
+        // this.phi = Math.atan2(this.pos.y - this.blackHole.pos.y, this.pos.x - this.blackHole.pos.x);
+        // this.r = Math.sqrt((this.pos.x - this.blackHole.pos.x) ** 2 + (this.pos.y - this.blackHole.pos.y) ** 2);
+        if (this.r < this.blackHole.radius + PHOTON_RADIUS) {
             this.alive = false;
             return;
         }
@@ -74,7 +97,7 @@ class Photon {
         if (!this.alive)
             return;
         ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, PHOTON_RADIUS, 0, Math.PI * 2);
+        ctx.arc(this.pos.x, canvas.height - this.pos.y, PHOTON_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.fill();
         ctx.closePath();
