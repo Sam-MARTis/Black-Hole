@@ -8,7 +8,7 @@ if (!ctx) {
 }
 const STEP = 1;
 const PHOTON_RADIUS = 1;
-const numberOfPhotons = 5;
+const numberOfPhotons = 50;
 class vector2D {
     constructor(x, y) {
         this.x = x;
@@ -61,18 +61,41 @@ class Photon {
         this.phi = Math.atan2(y - blackHole.pos.y, (x - blackHole.pos.x));
         this.r = Math.sqrt((x - blackHole.pos.x) ** 2 + (y - blackHole.pos.y) ** 2);
         this.dr = this.direction.x * Math.cos(this.phi) + this.direction.y * Math.sin(this.phi);
-        this.dphi = -this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi);
+        this.dphi = (-this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi)) / this.r;
+        this.f = 1 - (blackHole.radius / this.r);
+        this.L = this.r * this.r * this.dphi;
+        this.dtdl = Math.sqrt((this.dr * this.dr) / (this.f * this.f) + (this.r * this.r * this.dphi * this.dphi) / (this.f));
+        this.E = this.f * this.dtdl;
     }
     step() {
         // if(!this.alive) return;
         // console.log()
-        this.dr = this.direction.x * Math.cos(this.phi) + this.direction.y * Math.sin(this.phi);
-        this.dphi = (-this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi)) / this.r;
+        const speed = 100;
+        const ds = 0.0001;
+        const c = 20000;
+        // const ddphi =  -2 * this.dr * this.dphi / this.r;
+        // const ddr = this.r * this.dphi * this.dphi - ((0.5 * speed*speed * this.blackHole.radius/3) / (this.r * this.r));
+        // this.dphi += ddphi * ds;
+        // this.dr += ddr * ds;
+        const ddr = -(this.blackHole.radius / (2 * this.r * this.r)) * this.f * (this.dtdl * this.dtdl)
+            + (this.blackHole.radius / (2 * this.r * this.r * this.f)) * (this.dr * this.dr)
+            + (this.r - this.blackHole.radius) * (this.dphi * this.dphi);
+        const ddphi = -2 * this.dr * this.dphi / this.r;
+        this.dr += ddr * ds * c;
+        this.dphi += ddphi * ds * c;
+        /*
+            rhs[2] =
+        - (rs/(2*r*r)) * f * (dt_dλ*dt_dλ)
+        + (rs/(2*r*r*f)) * (dr*dr)
+        + (r - rs) * (dphi*dphi);
+        */
+        // this.dr = this.direction.x * Math.cos(this.phi) + this.direction.y * Math.sin(this.phi);
+        // this.dphi = (-this.direction.x * Math.sin(this.phi) + this.direction.y * Math.cos(this.phi))/ this.r;
         // this.dr += this.r * this.dphi * this.dphi - ((0.5 * this.blackHole.radius) / (this.r * this.r));
         // this.dphi += -2 * this.dr * this.dphi / this.r;
         // this.phi += this.dphi * STEP;
-        this.r += this.dr * STEP;
-        this.phi += this.dphi * STEP;
+        this.r += this.dr * ds * c;
+        this.phi += this.dphi * ds * c;
         // this.pos.add(this.direction.multiply(STEP, false));
         // if((blackHole.pos.x - this.pos.x ) * (blackHole.pos.x - this.pos.x) +
         //    (blackHole.pos.y - this.pos.y ) * (blackHole.pos.y - this.pos.y) < 
