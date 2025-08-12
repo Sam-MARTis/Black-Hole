@@ -12,7 +12,7 @@ if(!ctx){
 
 const STEP:number = 1;
 const PHOTON_RADIUS:number = 1;
-
+const numberOfPhotons = 50;
 
 
 
@@ -61,19 +61,30 @@ class vector2D {
 class Photon {
     pos: vector2D;
     direction: vector2D;
+    alive: boolean = true;
+    blackHole: BlackHole;
 
 
-    constructor(x: number, y: number, vx: number, vy: number) {
+    constructor(x: number, y: number, vx: number, vy: number, blackHole: BlackHole) {
         this.pos = new vector2D(x, y);
         this.direction = new vector2D(vx, vy).normalize();
+        this.blackHole = blackHole;
 
     }
 
     step(){
+        if(!this.alive) return;
         this.pos.add(this.direction.multiply(STEP, false));
+        if((blackHole.pos.x - this.pos.x ) * (blackHole.pos.x - this.pos.x) +
+           (blackHole.pos.y - this.pos.y ) * (blackHole.pos.y - this.pos.y) < 
+           (this.blackHole.radius + PHOTON_RADIUS) * (this.blackHole.radius + PHOTON_RADIUS)){
+            this.alive = false;
+            return;
+        }
     }
 
     draw(){
+        if(!this.alive) return;
         ctx.beginPath();
         ctx.arc(this.pos.x, this.pos.y, PHOTON_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = "white";
@@ -101,8 +112,8 @@ class BlackHole{
 }
 
 
-const numberOfPhotons = 50;
 let photons: Photon[] = [];
+const blackHole = new BlackHole(canvas.width / 2, canvas.height / 2, 50);
 const init = () => {
     for(let i = 0; i<numberOfPhotons; i++){
         // const x = Math.random() * canvas.width;
@@ -112,7 +123,9 @@ const init = () => {
         const vx = 100*(Math.random() ) * 2;
         const vy = 0;
         // const vy = 100*(Math.random() - 0.5) * 2;
-        photons.push(new Photon(x, y, vx, vy));
+
+        photons.push(new Photon(x, y, vx, vy, blackHole));
+
     }
     mainLoop();
 }
@@ -124,6 +137,7 @@ const mainLoop = () => {
         photon.step();
         photon.draw();
     });
+    blackHole.draw();
     requestAnimationFrame(mainLoop);
 }
 
