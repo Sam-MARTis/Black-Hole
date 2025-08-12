@@ -6,7 +6,7 @@ const ctx = canvas.getContext("2d");
 if (!ctx) {
     throw Error("Context unable to be found");
 }
-const STEP = 1;
+const STEP = 2;
 const PHOTON_RADIUS = 0.5;
 const numberOfPhotons = 50;
 class vector2D {
@@ -92,10 +92,10 @@ class Photon {
         // + (this.r - this.blackHole.radius) * (this.dphi * this.dphi);
         // const ddphi = -2 * this.dr * this.dphi / this.r;
         const derivatives = this.getGeodesicDerivatives(this.r, this.dr, this.dphi, this.f, this.dtdl, this.blackHole.radius);
-        this.r += derivatives[0];
-        this.phi += derivatives[1];
-        this.dr += derivatives[2];
-        this.dphi += derivatives[3];
+        this.r += derivatives[0] * STEP;
+        this.phi += derivatives[1] * STEP;
+        this.dr += derivatives[2] * STEP;
+        this.dphi += derivatives[3] * STEP;
         // this.dr += ddr * ds*c;
         // this.dphi += ddphi * ds*c;
         /*
