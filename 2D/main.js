@@ -7,6 +7,7 @@ if (!ctx) {
     throw Error("Context unable to be found");
 }
 const STEP = 1;
+const PHOTON_RADIUS = 1;
 class vector2D {
     constructor(x, y) {
         this.x = x;
@@ -60,20 +61,36 @@ class Photon {
     }
     draw() {
         ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, 2, 0, Math.PI * 2);
+        ctx.arc(this.pos.x, this.pos.y, PHOTON_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.fill();
         ctx.closePath();
     }
 }
-const numberOfPhotons = 100;
+class BlackHole {
+    constructor(x, y, radius) {
+        this.pos = new vector2D(x, y);
+        this.radius = radius;
+    }
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+const numberOfPhotons = 50;
 let photons = [];
 const init = () => {
     for (let i = 0; i < numberOfPhotons; i++) {
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const vx = 100 * (Math.random() - 0.5) * 2;
-        const vy = 100 * (Math.random() - 0.5) * 2;
+        // const x = Math.random() * canvas.width;
+        const x = 0;
+        // const y = Math.random() * canvas.height;
+        const y = (i + 0.5) * canvas.height / numberOfPhotons;
+        const vx = 100 * (Math.random()) * 2;
+        const vy = 0;
+        // const vy = 100*(Math.random() - 0.5) * 2;
         photons.push(new Photon(x, y, vx, vy));
     }
     mainLoop();

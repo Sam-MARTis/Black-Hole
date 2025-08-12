@@ -11,6 +11,7 @@ if(!ctx){
 
 
 const STEP:number = 1;
+const PHOTON_RADIUS:number = 1;
 
 
 
@@ -74,22 +75,43 @@ class Photon {
 
     draw(){
         ctx.beginPath();
-        ctx.arc(this.pos.x, this.pos.y, 2, 0, Math.PI * 2);
+        ctx.arc(this.pos.x, this.pos.y, PHOTON_RADIUS, 0, Math.PI * 2);
         ctx.fillStyle = "white";
         ctx.fill();
         ctx.closePath();
     }
 }
 
+class BlackHole{
+    pos: vector2D;
+    radius: number;
 
-const numberOfPhotons = 100;
+    constructor(x: number, y: number, radius: number) {
+        this.pos = new vector2D(x, y);
+        this.radius = radius;
+    }
+
+    draw() {
+        ctx.beginPath();
+        ctx.arc(this.pos.x, this.pos.y, this.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.closePath();
+    }
+}
+
+
+const numberOfPhotons = 50;
 let photons: Photon[] = [];
 const init = () => {
     for(let i = 0; i<numberOfPhotons; i++){
-        const x = Math.random() * canvas.width;
-        const y = Math.random() * canvas.height;
-        const vx = 100*(Math.random() - 0.5) * 2;
-        const vy = 100*(Math.random() - 0.5) * 2;
+        // const x = Math.random() * canvas.width;
+        const x = 0;
+        // const y = Math.random() * canvas.height;
+        const y = (i+0.5)* canvas.height / numberOfPhotons
+        const vx = 100*(Math.random() ) * 2;
+        const vy = 0;
+        // const vy = 100*(Math.random() - 0.5) * 2;
         photons.push(new Photon(x, y, vx, vy));
     }
     mainLoop();
