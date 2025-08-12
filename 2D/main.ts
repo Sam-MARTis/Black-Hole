@@ -10,7 +10,7 @@ if(!ctx){
 
 
 
-const STEP:number = 0.01;
+const STEP:number = 1;
 
 
 
@@ -81,6 +81,31 @@ class Photon {
     }
 }
 
+
+const numberOfPhotons = 100;
+let photons: Photon[] = [];
+const init = () => {
+    for(let i = 0; i<numberOfPhotons; i++){
+        const x = Math.random() * canvas.width;
+        const y = Math.random() * canvas.height;
+        const vx = 100*(Math.random() - 0.5) * 2;
+        const vy = 100*(Math.random() - 0.5) * 2;
+        photons.push(new Photon(x, y, vx, vy));
+    }
+    mainLoop();
+}
+
+
+const mainLoop = () => {
+    // ctx.clearRect(0, 0, canvas.width, canvas.height);
+    photons.forEach(photon => {
+        photon.step();
+        photon.draw();
+    });
+    requestAnimationFrame(mainLoop);
+}
+
+window.addEventListener("load", init);
 
 
 
