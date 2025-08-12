@@ -11,7 +11,7 @@ if(!ctx){
 
 
 const STEP:number = 1;
-const PHOTON_RADIUS:number = 1;
+const PHOTON_RADIUS:number = 0.5;
 const numberOfPhotons = 50;
 
 
@@ -87,12 +87,23 @@ class Photon {
 
     }
 
+    getGeodesicDerivatives = (r: number, dr: number, dphi: number, f:number, dtdl:number, Schwarzschild_radius: number): [number, number, number, number] =>{
+        const rhs: [number, number, number, number] = [0, 0, 0, 0];
+        rhs[0] = dr;
+        rhs[1] = dphi;
+        rhs[2] = - (Schwarzschild_radius/(2*r*r)) * f * (dtdl*dtdl)
+        + (Schwarzschild_radius/(2*r*r*f)) * (dr*dr)
+        + (r - Schwarzschild_radius) * (dphi*dphi);
+        rhs[3] = -2 * dr * dphi / r;
+        return rhs;
+    }
+
     step(){
         // if(!this.alive) return;
         // console.log()
         const speed = 100;
-        const ds = 0.0001
-        const c = 20000
+        // const ds = 0.001
+        // const c = 2000
 
         // const ddphi =  -2 * this.dr * this.dphi / this.r;
         // const ddr = this.r * this.dphi * this.dphi - ((0.5 * speed*speed * this.blackHole.radius/3) / (this.r * this.r));
@@ -100,16 +111,23 @@ class Photon {
         // this.dphi += ddphi * ds;
         // this.dr += ddr * ds;
 
-        const ddr = -(this.blackHole.radius / (2 * this.r * this.r)) * this.f * (this.dtdl * this.dtdl) 
-        + (this.blackHole.radius / (2 * this.r * this.r * this.f)) * (this.dr * this.dr)
-        + (this.r - this.blackHole.radius) * (this.dphi * this.dphi);
+        // const ddr = -(this.blackHole.radius / (2 * this.r * this.r)) * this.f * (this.dtdl * this.dtdl) 
+        // + (this.blackHole.radius / (2 * this.r * this.r * this.f)) * (this.dr * this.dr)
+        // + (this.r - this.blackHole.radius) * (this.dphi * this.dphi);
 
-        const ddphi = -2 * this.dr * this.dphi / this.r;
-        this.dr += ddr * ds*c;
-        this.dphi += ddphi * ds*c;
+        // const ddphi = -2 * this.dr * this.dphi / this.r;
 
-
+        const derivatives  = this.getGeodesicDerivatives(this.r, this.dr, this.dphi, this.f, this.dtdl, this.blackHole.radius);
+        this.r  += derivatives[0];
+        this.phi  += derivatives[1];
+        this.dr += derivatives[2]
+        this.dphi += derivatives[3]
         
+        // this.dr += ddr * ds*c;
+        // this.dphi += ddphi * ds*c;
+
+
+
 
         /*
             rhs[2] = 
@@ -126,9 +144,6 @@ class Photon {
         // this.dr += this.r * this.dphi * this.dphi - ((0.5 * this.blackHole.radius) / (this.r * this.r));
         // this.dphi += -2 * this.dr * this.dphi / this.r;
         // this.phi += this.dphi * STEP;
-
-        this.r += this.dr * ds*c;
-        this.phi += this.dphi * ds*c;
 
 
 
