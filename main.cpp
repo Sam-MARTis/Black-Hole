@@ -49,7 +49,7 @@ void render(){
 
     cudaGraphicsMapResources(1, &cuda_pbo_resource, 0);
     cudaGraphicsResourceGetMappedPointer((void **)&d_out, NULL, cuda_pbo_resource);
-    kernelLauncher(d_out, camera.x, camera.y, CAM_DIST, W, H, SCREEN_SCALING, 0, NULL, NULL);
+    kernelLauncher(d_out, camera.x, camera.y, camera.z, W, H, SCREEN_SCALING, 0, NULL, NULL);
     // testKernelLauncher(d_out, W, H);
     cudaGraphicsUnmapResources(1, &cuda_pbo_resource, 0);
 }

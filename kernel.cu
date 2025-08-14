@@ -1,6 +1,6 @@
 #include "kernel.hpp"
 #include <iostream>
-#define LIMIT 5
+#define LIMIT 40
 #define STEP 0.01f
 #define SCREEN_DISTANCE 1.0f
 
@@ -8,12 +8,14 @@
 
 #define TY 16
 #define TX 32
-#define SCHWARZCHILD_RADIUS 0.2f
+#define SCHWARZCHILD_RADIUS 1.0f
 
-#define ACCRETION_RADIUS 0.5f
-#define ACCRETION_DPHI_SQ 0.025f
+#define ACCRETION_RADIUS 5.0f
+#define ACCRETION_DPHI 0.25f
+#define PI 3.14159265358979323846f
 
-#define HALF_FOV 0.5235 
+
+#define HALF_FOV 0.7235 
 // Half
 
 __device__ void getGeodesicDerivatives(const float r, const float theta, const float phi, const float dr, float dtheta, float dphi, const float f, const float dt_dL, float out[6]) {
@@ -35,7 +37,8 @@ __device__ void getGeodesicDerivatives(const float r, const float theta, const f
 }
 __global__
 void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forward, float r0, int width, int height){
-    
+    const float out_r0 = r0 *2.0f;
+    const float inv_schwarzchild_radius = 1.0f / SCHWARZCHILD_RADIUS;
     const int col = blockDim.x*blockIdx.x + threadIdx.x;
     const int row = blockDim.y*blockIdx.y + threadIdx.y;
     if (col >= width || row >= height) return;
@@ -51,29 +54,36 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
     // const float sin_up = t_up - t_up*t_up*t_up*0.3333f;
     // const float cos_up = sqrtf(1.0f - sin_up*sin_up);
 
-    const float sin_right = t_right - t_right*t_right*t_right*0.3333f;
-    // const float cos_right = cosf(t_right);
-    const float cos_right = 1.0f - t_right*t_right*0.5f;
-    const float sin_up = t_up - t_up*t_up*t_up*0.3333f;
-    const float cos_up = 1.0f - sin_up*sin_up*0.5f;
+    // const float sin_right = t_right - t_right*t_right*t_right*0.3333f;
+    const float sin_right = sinf(t_right);
 
-    const float mag_inv = 1/(1+ sin_right*sin_right + sin_up*sin_up);
+    // const float cos_right = cosf(t_right);
+    // const float cos_right = 1.0f - t_right*t_right*0.5f;
+    // const float sin_up = t_up - t_up*t_up*t_up*0.3333f;
+    const float sin_up = sinf(t_up);
+    // const float cos_up = 1.0f - sin_up*sin_up*0.5f;
+
     // const float3 direction = { (forward.x + sin_right*right.x + sin_up*up.x) * mag_inv, (forward.y + sin_right*right.y + sin_up*up.y) * mag_inv, (forward.z + sin_right*right.z + sin_up*up.z) * mag_inv };
     // const float3 step = {direction.x * STEP, direction.y * STEP, direction.z * STEP};
-
+    
     const int idx = row*width + col;
-
-
+    
+    
     float3 pos = {(-forward.x + ds*(right.x*xidx + up.x*yidx))*r0, (-forward.y + ds*(right.y*xidx + up.y*yidx))*r0, -forward.z + ds*(right.z*xidx + up.z*yidx)*r0};
-
+    
     float r = sqrtf(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
     float rinv = 1.0f / r;
-
+    
     float theta = acosf(pos.z * rinv);
     float phi = atan2f(pos.y, pos.x);
-    float dx = (forward.x + sin_right*right.x + sin_up*up.x) * mag_inv;
-    float dy = (forward.y + sin_right*right.y + sin_up*up.y) * mag_inv;
-    float dz = (forward.z + sin_right*right.z + sin_up*up.z) * mag_inv;
+    float dx = (forward.x + sin_right*right.x + sin_up*up.x);
+    float dy = (forward.y + sin_right*right.y + sin_up*up.y);
+    float dz = (forward.z + sin_right*right.z + sin_up*up.z);
+    
+    const float mag_inv = 1/(sqrtf(dx*dx + dy*dy + dz*dz));
+    dx *= mag_inv;
+    dy *= mag_inv;
+    dz *= mag_inv;
 
     const float sintheta = sinf(theta);
     const float costheta = cosf(theta);
@@ -84,7 +94,7 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
     float dtheta = (costheta*cosphi*dx + costheta*sinphi*dy - sintheta*dz) * rinv;
     float dphi   = (-sinphi*dx + cosphi*dy) / (r * sintheta);
 
-    const float L = r*r*sintheta*dphi;
+
     const float f = 1.0f - SCHWARZCHILD_RADIUS * rinv;
     const float dt_dL = sqrtf((dr*dr)/f + r*r*(dtheta*dtheta + sintheta*sintheta*dphi*dphi));
 
@@ -92,8 +102,8 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
 
     
     char ray_colour = 0;
-    char colours[3*3] = {0, 0, 0, 255, 255, 255, 255, 0, 0};
-
+    char colours[3*3] = {20, 20, 20, 0, 0, 0, 255, 0, 0};
+    
 
     const int max_iterations = LIMIT / STEP;
     for(int i = 0; i < max_iterations; i++){
@@ -151,16 +161,51 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
         //         break;
         //     }
 
+        // // }
+        // if(r<ACCRETION_RADIUS){
+        //     if(pos.x < 0.05f && pos.x > -0.05f)
+        //     {
+        //         // if(pos.x < ACCRETION_DPHI && pos.x > -ACCRETION_DPHI){
+        //             ray_colour = 2;
+        //             break;
+        //         // }
+        //     }
+        // // if(phi*r < ACCRETION_DPHI && phi*r > -ACCRETION_DPHI){
+        // //     ray_colour = 2;
+        // //     break;
+        // // }
+
+        // // if( ((phi+PI)*r < ACCRETION_DPHI && (phi+PI)*r > -ACCRETION_DPHI) || ((phi-PI)*r < ACCRETION_DPHI && (phi-PI)*r > -ACCRETION_DPHI) ){
+        // //     ray_colour = 2;
+        // //     break;
+        // // }
         // }
-        if(phi < 0.001f && phi > -0.001f){
-            ray_colour = 2;
+        if(r> out_r0){
+            const float theta_divisions = 50.0f;
+            const float phi_divisions = 10.0f;
+            const float theta_step = 2*PI / theta_divisions;
+            const float phi_step = PI / phi_divisions;
+            const float theta_idx = floorf(theta / theta_step);
+            const float phi_idx = floorf(phi / phi_step);
+            const int colour_idx = (int)(phi_idx  );
+            char colour;
+            if(colour_idx & 1){
+                colour = 255;
+            }
+            else{
+                colour = 0;
+            }
+
+            d_out[idx].x = colour;
+            d_out[idx].y = colour;
+            d_out[idx].z = colour;
+            d_out[idx].w = 255;
+            return;
             break;
-        }
-        if(phi > 3.141f - 0.001f && phi < 3.141f + 0.001f){
-            ray_colour = 2;
-            break;
+
         }
     }
+
     d_out[idx].x = colours[3*ray_colour + 0];
     d_out[idx].y = colours[3*ray_colour + 1];
     d_out[idx].z = colours[3*ray_colour + 2];
@@ -177,8 +222,8 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
 }
 
 
-float3 cross_product(float3 a, float3 b){
-    float3 c = {a.y * b.z - a.z * b.y, a.z * b.x - a.x * b.z, a.x*b.y - a.y*b.x};
+float3 cross_product(float3 a, float3 b, float scaling=1.0f){
+    float3 c = {(a.y * b.z - a.z * b.y) * scaling, (a.z * b.x - a.x * b.z) * scaling, (a.x*b.y - a.y*b.x) * scaling};
     return c;
 }
 float3 normalize_vector(float3 a){
@@ -222,25 +267,49 @@ float3 normalize_vector(float3 a){
 
 // }
 
-void kernelLauncher(uchar4 *d_out, float camerax, float cameray, float cam_distance,  int width, int height,float scaling, int count, float *spheres_coords, float* spheres_rads){
+void kernelLauncher(uchar4 *d_out, float cam_distance,  float cameratheta, float cameraphi, int width, int height,float scaling, int count, float *spheres_coords, float* spheres_rads){
 
     float3 up = {0.0f ,0.0f, 1.0f};
-    float sinphi = sinf(cameray);
-    float cosphi = cosf(cameray);
-    float sintheta = sinf(camerax);
-    float costheta = cosf(camerax);
-    // printf("Camera: %f %f\n", camerax, cameray);
+    float sinphi = sinf(cameraphi);
+    float cosphi = cosf(cameraphi);
+    float sintheta = sinf(cameratheta);
+    float costheta = cosf(cameratheta);
+    printf("Camera: %f %f\n", cameratheta, cameraphi);
+    // printf("sinphi: %f, cosphi: %f, sintheta: %f, costheta: %f\n", sinphi, cosphi, sintheta, costheta);
+
 
     float3 r = {costheta*sinphi, sintheta*sinphi, cosphi};
-    float3 plane_right = normalize_vector(cross_product(up, r));
+    printf(
+        "Camera Direction: %f %f %f\n",
+        r.x, r.y, r.z
+    );
+    float3 plane_right = normalize_vector(cross_product(up, r, (cameraphi<0.0f)? -1.0f : 1.0f));
+    // printf(r.x, r.y, r.z);
+    printf(
+        "Camera: %f %f %f\n",
+        r.x, r.y, r.z
+    );
+    printf(
+        "Plane Right: %f %f %f\n",
+        plane_right.x, plane_right.y, plane_right.z
+    );
     float3 plane_up = normalize_vector(cross_product(r, plane_right));
+    printf(
+        "Plane Up: %f %f %f\n\n",
+        plane_up.x, plane_up.y, plane_up.z
+    );
+    // if(r.z < 0.0f){
+    //     plane_up.x *= -1.0f;
+    //     plane_up.y *= -1.0f;
+    //     // plane_up.z *= -1.0f;
+    // }
     float3 plane_normal = {-r.x, -r.y, -r.z};
 
     const dim3 blockSize(TX, TY);
     const dim3 gridSize((width + TX - 1) / TX, (height + TY - 1) / TY);
     
 
-    ray_tracing<<<gridSize, blockSize>>>(d_out, scaling, plane_right, plane_up, plane_normal, width, height);
+    ray_tracing<<<gridSize, blockSize>>>(d_out, scaling, plane_right, plane_up, plane_normal, cam_distance, width, height);
     
     cudaError_t err = cudaGetLastError();
     if (err != cudaSuccess) {
