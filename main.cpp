@@ -16,8 +16,8 @@
 #include <cuda_gl_interop.h>
 #include "interactions.hpp"
 
-#define W 1024
-#define H 512
+#define W 512
+#define H 256
 #define CAM_DIST 1.0f
 #define SCREEN_WIDTH 10.0f
 #define SCREEN_HEIGHT 5.0f

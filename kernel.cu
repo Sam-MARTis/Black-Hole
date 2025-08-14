@@ -1,12 +1,13 @@
 #include "kernel.hpp"
 #include <iostream>
-#define LIMIT 100
-#define STEP 0.1f
+#define LIMIT 10
+#define STEP 0.05f
 
 #define MAGNITUDE_SQ(x, y, z) ((x)*(x) + (y)*(y) + (z)*(z))
 
-#define TX 32
-#define TY 32
+#define TY 16
+#define TX 16
+#define SCHWARZCHILD_RADIUS 0.2f
 
 #define HALF_FOV 0.5235 
 // Half
@@ -15,12 +16,12 @@
 __global__
 void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forward, int width, int height){
     
-    const int c = blockDim.x*blockIdx.x + threadIdx.x;
-    const int r = blockDim.y*blockIdx.y + threadIdx.y;
-    if (c >= width || r >= height) return;
+    const int col = blockDim.x*blockIdx.x + threadIdx.x;
+    const int row = blockDim.y*blockIdx.y + threadIdx.y;
+    if (col >= width || row >= height) return;
 
-    const int xidx = c - width*0.5f;
-    const int yidx = r - height*0.5f;
+    const int xidx = col - width*0.5f;
+    const int yidx = row - height*0.5f;
 
     const float t_right = HALF_FOV * xidx*2.0f/width;
     const float t_up =    HALF_FOV * yidx*2.0f/height;
@@ -37,24 +38,62 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
 
     const float mag_inv = 1/(1+ sin_right*sin_right + sin_up*sin_up);
     const float3 direction = { (forward.x + sin_right*right.x + sin_up*up.x) * mag_inv, (forward.y + sin_right*right.y + sin_up*up.y) * mag_inv, (forward.z + sin_right*right.z + sin_up*up.z) * mag_inv };
-    const float3 step = {direction.x * STEP, direction.y * STEP, direction.z * STEP};
+    // const float3 step = {direction.x * STEP, direction.y * STEP, direction.z * STEP};
 
-    const int idx = r*width + c;
+    const int idx = row*width + col;
+
+
     float3 pos = {-forward.x + ds*(right.x*xidx + up.x*yidx), -forward.y + ds*(right.y*xidx + up.y*yidx), -forward.z + ds*(right.z*xidx + up.z*yidx)};
+
+    float r = sqrtf(pos.x*pos.x + pos.y*pos.y + pos.z*pos.z);
+
+    float theta = acosf(pos.z / r);
+    float phi = atan2f(pos.y, pos.x);
+    float dx = direction.x;
+    float dy = direction.y;
+    float dz = direction.z;
+
+    float dr     = sin(theta)*cos(phi)*dx + sin(theta)*sin(phi)*dy + cos(theta)*dz;
+    float dtheta = (cos(theta)*cos(phi)*dx + cos(theta)*sin(phi)*dy - sin(theta)*dz) / r;
+    float dphi   = (-sin(phi)*dx + cos(phi)*dy) / (r * sin(theta));
+
+    float L = r*r*sin(theta)*dphi;
+    float f = 1.0f - SCHWARZCHILD_RADIUS/r;
+    float dt_dL = sqrt((dr*dr)/f + r*r*(dtheta*dtheta + sin(theta)*sin(theta)*dphi*dphi));
+    float E = f * dt_dL;
+
+
+
     
-    float theta = 0.0f;
-    float phi = 0.0f;
-
-    // Direction and position sorted. Phew
-
     char ray_colour = 0;
     char colours[3*3] = {0, 0, 0, 254, 254, 254, 254, 0, 0};
 
+
     const int max_iterations = LIMIT / STEP;
     for(int i = 0; i < max_iterations; i++){
-        pos.x += step.x;
-        pos.y += step.y;
-        pos.z += step.z;
+        // pos.x += step.x;
+        // pos.y += step.y;
+        // pos.z += step.z;
+
+        const float ddr = - (SCHWARZCHILD_RADIUS / (2.0 * r*r)) * f * dt_dL * dt_dL
+         + (SCHWARZCHILD_RADIUS / (2.0 * r*r * f)) * dr * dr
+         + r * (dtheta*dtheta + sin(theta)*sin(theta)*dphi*dphi);
+
+        const float ddphi =  -2.0*dr*dphi/r - 2.0*cos(theta)/(sin(theta)) * dtheta * dphi;
+        const float ddtheta = -2.0*dr*dtheta/r + sin(theta)*cos(theta)*dphi*dphi;
+
+
+        r += dr * STEP;
+        theta += dtheta * STEP;
+        phi += dphi * STEP;
+        dr += ddr * STEP;
+        dtheta += ddtheta * STEP;
+        dphi += ddphi * STEP;
+
+        pos.x = r * sin(theta) * cos(phi);
+        pos.y = r * sin(theta) * sin(phi);
+        pos.z = r * cos(theta);
+        
 
         if (MAGNITUDE_SQ(pos.x, pos.y, pos.z) < 0.05f) {
             ray_colour = 1;
