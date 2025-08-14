@@ -41,7 +41,9 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
 
     const int idx = r*width + c;
     float3 pos = {-forward.x + ds*(right.x*xidx + up.x*yidx), -forward.y + ds*(right.y*xidx + up.y*yidx), -forward.z + ds*(right.z*xidx + up.z*yidx)};
-
+    
+    float theta = 0.0f;
+    float phi = 0.0f;
 
     // Direction and position sorted. Phew
 
