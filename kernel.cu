@@ -1,21 +1,21 @@
 #include "kernel.hpp"
 #include <iostream>
-#define LIMIT 40
-#define STEP 0.01f
+#define LIMIT 30
+#define STEP 0.02f
 #define SCREEN_DISTANCE 1.0f
 
 #define MAGNITUDE_SQ(x, y, z) ((x)*(x) + (y)*(y) + (z)*(z))
 
 #define TY 16
-#define TX 32
-#define SCHWARZCHILD_RADIUS 1.0f
+#define TX 16
+#define SCHWARZCHILD_RADIUS 0.3f
 
-#define ACCRETION_RADIUS 5.0f
-#define ACCRETION_DPHI 0.25f
+#define ACCRETION_RADIUS 0.9f
+#define ACCRETION_DPHI 0.05f
 #define PI 3.14159265358979323846f
 
 
-#define HALF_FOV 0.7235 
+#define HALF_FOV 0.4235 
 // Half
 
 __device__ void getGeodesicDerivatives(const float r, const float theta, const float phi, const float dr, float dtheta, float dphi, const float f, const float dt_dL, float out[6]) {
@@ -104,7 +104,7 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
     char ray_colour = 0;
     char colours[3*3] = {20, 20, 20, 0, 0, 0, 255, 0, 0};
     
-
+    
     const int max_iterations = LIMIT / STEP;
     for(int i = 0; i < max_iterations; i++){
         // pos.x += step.x;
@@ -132,12 +132,6 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
         dr += onesixth * (k1[3] + 2.0f*k2[3] + 2.0f*k3[3] + k4[3]);
         dtheta += onesixth * (k1[4] + 2.0f*k2[4] + 2.0f*k3[4] + k4[4]);
         dphi += onesixth * (k1[5] + 2.0f*k2[5] + 2.0f*k3[5] + k4[5]);   
-        // r += out[0] * STEP;
-        // theta += out[1] * STEP;
-        // phi += out[2] * STEP;
-        // dr += out[3] * STEP;
-        // dtheta += out[4] * STEP;
-        // dphi += out[5] * STEP;
 
         float sintheta_this = sinf(theta);
   
@@ -162,45 +156,45 @@ void ray_tracing(uchar4 *d_out, float ds, float3 right, float3 up, float3 forwar
         //     }
 
         // // }
-        // if(r<ACCRETION_RADIUS){
-        //     if(pos.x < 0.05f && pos.x > -0.05f)
-        //     {
-        //         // if(pos.x < ACCRETION_DPHI && pos.x > -ACCRETION_DPHI){
-        //             ray_colour = 2;
-        //             break;
-        //         // }
-        //     }
-        // // if(phi*r < ACCRETION_DPHI && phi*r > -ACCRETION_DPHI){
-        // //     ray_colour = 2;
-        // //     break;
-        // // }
-
-        // // if( ((phi+PI)*r < ACCRETION_DPHI && (phi+PI)*r > -ACCRETION_DPHI) || ((phi-PI)*r < ACCRETION_DPHI && (phi-PI)*r > -ACCRETION_DPHI) ){
-        // //     ray_colour = 2;
-        // //     break;
-        // // }
+        if(r<ACCRETION_RADIUS){
+            if(pos.x*ACCRETION_RADIUS < 0.1f*(1.3f*ACCRETION_RADIUS - r) && pos.x*ACCRETION_RADIUS > -0.1f*(1.3f*ACCRETION_RADIUS - r))
+            {
+                // if(pos.x < ACCRETION_DPHI && pos.x > -ACCRETION_DPHI){
+                    ray_colour = 2;
+                    break;
+                // }
+            }
+        // if(phi*r < ACCRETION_DPHI && phi*r > -ACCRETION_DPHI){
+        //     ray_colour = 2;
+        //     break;
         // }
-        if(r> out_r0){
-            const float theta_divisions = 50.0f;
-            const float phi_divisions = 10.0f;
-            const float theta_step = 2*PI / theta_divisions;
-            const float phi_step = PI / phi_divisions;
-            const float theta_idx = floorf(theta / theta_step);
-            const float phi_idx = floorf(phi / phi_step);
-            const int colour_idx = (int)(phi_idx  );
-            char colour;
-            if(colour_idx & 1){
-                colour = 255;
-            }
-            else{
-                colour = 0;
-            }
 
-            d_out[idx].x = colour;
-            d_out[idx].y = colour;
-            d_out[idx].z = colour;
-            d_out[idx].w = 255;
-            return;
+        // if( ((phi+PI)*r < ACCRETION_DPHI && (phi+PI)*r > -ACCRETION_DPHI) || ((phi-PI)*r < ACCRETION_DPHI && (phi-PI)*r > -ACCRETION_DPHI) ){
+        //     ray_colour = 2;
+        //     break;
+        // }
+        }
+        if(r> out_r0){
+            // const float theta_divisions = 50.0f;
+            // const float phi_divisions = 10.0f;
+            // const float theta_step = 2*PI / theta_divisions;
+            // const float phi_step = PI / phi_divisions;
+            // const float theta_idx = floorf(theta / theta_step);
+            // const float phi_idx = floorf(phi / phi_step);
+            // const int colour_idx = (int)(phi_idx  );
+            // char colour;
+            // if(colour_idx & 1){
+            //     colour = 255;
+            // }
+            // else{
+            //     colour = 0;
+            // }
+
+            // d_out[idx].x = colour;
+            // d_out[idx].y = colour;
+            // d_out[idx].z = colour;
+            // d_out[idx].w = 255;
+            // return;
             break;
 
         }

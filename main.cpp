@@ -17,10 +17,10 @@
 #include "interactions.hpp"
 
 #define W 512
-#define H 256
+#define H 512
 #define CAM_DIST 1.0f
-#define SCREEN_WIDTH 10.0f
-#define SCREEN_HEIGHT 5.0f
+#define SCREEN_WIDTH 0.1f
+#define SCREEN_HEIGHT 0.1f
 // #define SCREEN_SCALING (10.0f / W)
 #define CAMERA_DISTANCE 10.0f
 #define TITLE_STRING "Black hole sim"
